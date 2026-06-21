@@ -1,0 +1,61 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>MIDI-REPA — generation demo</title>
+<style>
+ body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#1a1a1a;background:#fafafa}
+ h1{margin-bottom:4px} .sub{color:#666;margin-bottom:18px}
+ .box{background:#fff;border:1px solid #e2e2e2;border-radius:10px;padding:16px 20px;margin-bottom:20px;max-width:1100px}
+ table{border-collapse:collapse;width:100%;background:#fff}
+ th,td{border:1px solid #e4e4e4;padding:8px;text-align:center;vertical-align:top;font-size:13px}
+ th{background:#f3f4f6;position:sticky;top:0}
+ .m{font-weight:600;margin-bottom:4px} .met{color:#888;font-size:11px;font-weight:400}
+ td.prompt{text-align:left;max-width:230px;font-size:12px;background:#fcfcfd}
+ audio{width:170px} td.miss{color:#bbb}
+ .gt{background:#f0f7ff} code{background:#eee;padding:1px 5px;border-radius:4px}
+ .key{color:#0a7d28;font-weight:600} .bad{color:#b00}
+</style></head><body>
+<h1>MIDI-REPA — 生成樣本並排比較</h1>
+<div class="sub">FluxAudio-S (120M) · SAME VAE · 從頭訓練 · MTG-Jamendo 49k clips · 100k steps · 每格同一段 noise + 同一段文字條件,差異純粹來自模型</div>
+
+<div class="box">
+<b>研究動機.</b> Diffusion 對 <b>音色 (timbre)</b> 學得很好,但生成音樂的<b>旋律</b>常常不夠合理 —— 因為重建式訓練偏向高能量的音色、低估了低能量但關鍵的音高。
+我們仿 <b>REPA</b>,在訓練時把中間層 hidden state 對齊到 <b>MIDI/pitch</b> 表徵,想讓單一 end-to-end 模型也學會旋律。
+<br><br>
+<b>每一欄是什麼.</b>
+<code>Ground truth</code> = 真實片段經 SAME 編解碼(decoder 上限參考)。
+<code>Baseline</code> = 純 diffusion,無 MIDI。
+<code>MIDI-REPA</code> = 加上 pitch 對齊輔助 loss;<b>λ</b> 是對齊強度;<b>piano-roll</b> vs <b>posteriorgram</b> 是兩種 pitch teacher。
+<br><br>
+<b>指標.</b> <code>FAD</code>↓ 整體音訊分佈距離(主要反映音色/保真度)。<code>pitch-probe</code>↑ 凍結模型線性探測「第4層 hidden state 能多準地還原音高」(直接量 pitch 被注入多少)。<code>flow</code> 去噪 loss。
+<br><br>
+<b>目前發現.</b>
+<span class="key">① pitch 確實被注入</span>:λ 越大,pitch-probe 從 0.70 升到 0.93(<b>機制成功</b>)。
+<span class="key">② 幾乎零代價</span>:λ=0.1 時 FAD 0.151 ≈ baseline 0.152(<b>免費拿到 pitch</b>)。
+<span class="bad">③ 但 FAD 沒有變更好</span>:λ 太大反而傷 FAD(0.177)。
+→ 因為 FAD 主要量音色、不量旋律。<b>下一步要用旋律品質本身來評估</b>(這個 demo 就是讓人直接「聽」旋律差異)。
+</div>
+
+<div class="box" style="max-width:none;overflow-x:auto">
+<table>
+<thead><tr><th>Prompt (文字條件)</th><th><div class="m">Ground truth<br>(real → SAME → audio)</div><div class="met">reference<br>pitch-probe —<br>flow —</div></th><th><div class="m">Baseline<br>(no MIDI)</div><div class="met">FAD 0.152<br>pitch-probe 0.70<br>flow 0.820</div></th><th><div class="m">MIDI-REPA<br>piano-roll λ=0.1</div><div class="met">FAD 0.151<br>pitch-probe 0.83<br>flow 0.822</div></th><th><div class="m">MIDI-REPA<br>piano-roll λ=0.25</div><div class="met">FAD 0.162<br>pitch-probe 0.88<br>flow 0.825</div></th><th><div class="m">MIDI-REPA<br>piano-roll λ=0.5</div><div class="met">FAD 0.177<br>pitch-probe 0.93<br>flow 0.831</div></th><th><div class="m">MIDI-REPA<br>posteriorgram λ=0.1</div><div class="met">FAD 0.152<br>pitch-probe ~0.97*<br>flow 0.820</div></th></tr></thead>
+<tbody>
+<tr><td class="prompt"><b>#36</b><br>A classical music track featuring piano and pianosolo, with a sad mood.</td><td><audio controls preload="none" src="audio/gt/gt_36.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_36.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_36.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_36.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_36.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_36.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#42</b><br>A jazz and rock music track featuring bass, drum, electricguitar, and guitar.</td><td><audio controls preload="none" src="audio/gt/gt_42.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_42.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_42.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_42.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_42.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_42.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#84</b><br>A classical and orchestral music track, with a filmmusic mood.</td><td><audio controls preload="none" src="audio/gt/gt_84.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_84.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_84.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_84.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_84.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_84.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#180</b><br>A folk, jazz, reggae, and swing music track featuring classicalguitar and doublebass.</td><td><audio controls preload="none" src="audio/gt/gt_180.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_180.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_180.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_180.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_180.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_180.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#54</b><br>A chanson, pop, and popfolk music track featuring guitar.</td><td><audio controls preload="none" src="audio/gt/gt_54.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_54.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_54.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_54.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_54.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_54.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#39</b><br>An electronic and minimal music track featuring percussion and sampler.</td><td><audio controls preload="none" src="audio/gt/gt_39.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_39.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_39.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_39.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_39.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_39.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#24</b><br>An ambient and trance music track.</td><td><audio controls preload="none" src="audio/gt/gt_24.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_24.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_24.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_24.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_24.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_24.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#99</b><br>A funk and jazz music track featuring synthesizer.</td><td><audio controls preload="none" src="audio/gt/gt_99.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_99.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_99.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_99.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_99.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_99.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#81</b><br>A reggae and rock music track.</td><td><audio controls preload="none" src="audio/gt/gt_81.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_81.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_81.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_81.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_81.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_81.mp3"></audio></td></tr>
+<tr><td class="prompt"><b>#3</b><br>A blues music track featuring percussions.</td><td><audio controls preload="none" src="audio/gt/gt_3.mp3"></audio></td><td><audio controls preload="none" src="audio/baseline/gen_3.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.1/gen_3.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.25/gen_3.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_roll_l0.5/gen_3.mp3"></audio></td><td><audio controls preload="none" src="audio/repa_pg_l0.1/gen_3.mp3"></audio></td></tr>
+
+</tbody></table>
+<div class="met" style="margin-top:8px">* posteriorgram 的 probe 用連續目標,AP 與 piano-roll 不可直接比較;此處標的是訓練對齊 cosine。</div>
+</div>
+
+<div class="box">
+<b>怎麼看 / 聽.</b> 每一橫列是同一個文字 prompt + 同一段起始 noise,所以欄與欄的差別<b>只來自模型</b>。
+建議比較同一列的 <code>baseline</code> 對 <code>MIDI-REPA λ=0.1</code>:旋律有沒有更有調性、更連貫?
+<code>Ground truth</code> 是 decoder 能達到的上限參考(注意它本身也不是高保真,因為 SAME 是 10.76Hz 粗 latent + 模型僅 120M)。
+</div>
+</body></html>
