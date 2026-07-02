@@ -1,7 +1,7 @@
 :root{--bg:#f4f4ef;--card:#fff;--ink:#1c1c1a;--mut:#8a8a82;--line:#e3e3dc;--acc:#1a7f37}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"SF Mono","JetBrains Mono",Menlo,Monaco,"Courier New",monospace;font-size:13.5px;line-height:1.55;padding:40px 22px}
-.wrap{max-width:1240px;margin:0 auto}
+.wrap{max-width:1600px;margin:0 auto}
 h1{font-size:27px;font-weight:700;letter-spacing:.5px;margin:0 0 8px} h1 .d{color:var(--mut)}
 .cur{color:var(--acc);animation:bl 1.1s steps(1) infinite}@keyframes bl{50%{opacity:0}}
 .cmt{color:var(--mut);margin:0 0 5px;font-size:12.5px} .cmt b{color:var(--ink)}
