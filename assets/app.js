@@ -7,7 +7,7 @@
   const rows = PROMPTS.map((prompt, i) => {
     const cells = COLUMNS.map(c => {
       const mark = SILENT.has(`${c.id}:${i}`) ? '<span class="sil">✕ silent</span> ' : "";
-      const player = `<audio controls preload="none" src="audio/${c.id}/gen_${i}.mp3"></audio>`;
+      const player = `<audio controls preload="none" src="assets/audio/${c.id}/gen_${i}.mp3"></audio>`;
       return `<td data-l="${c.mobile}">${mark}${player}</td>`;
     }).join("");
     const n = String(i + 1).padStart(2, "0");
